@@ -146,15 +146,65 @@ app.put('/admin/disasters/:id', async (req, res) => {
   }
 });
 
-// Admin can send disaster alerts via email (pseudo code for sending email)
-app.post('/admin/notifications', (req, res) => {
-  const { email, disasterInfo } = req.body;
-  // Call an email service here (e.g., using Nodemailer or SendGrid)
-  res.json({ message: 'Notification sent to users' });
-});
+
+export const sendEmail = async (req, res) => {
+  const { users, htmlContent } = req.body;
+  const apiKey = "";
+
+  try {
+    for (const user of users) {
+      await sendDisasterEmail(user, htmlContent, apiKey, res);
+    }
+    res.status(200).json({ message: "Email sent successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to send email", error });
+    console.error("Error sending email:", error);
+  }
+};
+
+app.post('/admin/send-alert', sendEmail);
 
 
 // Start the server
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
 });
+
+
+const sendDisasterEmail = async (user, htmlContent, apiKey, res) => {
+  const email = user.email;
+  const name = user.name;
+
+  const subject = "Disaster Alert";
+
+  const emailData = {
+    sender: {
+      name: "Disaster Alert",
+      email: "disaster-alert23@gmail.com",
+    },
+    to: [
+      {
+        email: email,
+        name: name,
+      },
+    ],
+    subject: subject,
+    htmlContent: htmlContent,
+  };
+
+  try {
+    await axios.post(
+      "https://api.brevo.com/v3/smtp/email",
+      emailData,
+      {
+        headers: {
+          accept: "application/json",
+          "api-key": apiKey,
+          "content-type": "application/json",
+        },
+      }
+    );
+  } catch (error) {
+    throw error;
+  }
+}
